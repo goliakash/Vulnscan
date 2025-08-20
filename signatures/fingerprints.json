@@ -1,0 +1,26 @@
+[
+  {
+    "id": "apache_2_4",
+    "product": "Apache HTTP Server",
+    "version": "2.4",
+    "substring": "apache/2.4",
+    "regex": null,
+    "cpe": "cpe:2.3:a:apache:http_server:2.4:*:*:*:*:*:*:*"
+  },
+  {
+    "id": "nginx",
+    "product": "nginx",
+    "version": null,
+    "substring": "nginx",
+    "regex": null,
+    "cpe": "cpe:2.3:a:nginx:nginx:*:*:*:*:*:*:*:*"
+  },
+  {
+    "id": "openssl_1_0",
+    "product": "OpenSSL",
+    "version": "1.0",
+    "substring": "openssl 1.0",
+    "regex": "openssl\\s*1\\.0",
+    "cpe": "cpe:2.3:a:openssl:openssl:1.0:*:*:*:*:*:*:*"
+  }
+]
