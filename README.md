@@ -21,7 +21,7 @@ It performs **port scanning, banner grabbing, fingerprinting, and CVE lookups** 
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/vulnscan.git
+   git clone https://github.com/goliakash/vulnscan.git
    cd vulnscan
    ```
 
@@ -87,4 +87,4 @@ Do **NOT** use it against systems you do not own or have explicit permission to 
 
 ---
 
-Made with ❤️ by [Your Name]
+Made with ❤️ by [Goli Akash]
