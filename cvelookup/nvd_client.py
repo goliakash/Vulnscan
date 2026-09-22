@@ -115,7 +115,8 @@ class NVDClient:
                 "cvss": cvss_score,
                 "severity": severity,
                 "published": cve.get("published"),
-                "last_modified": cve.get("lastModified")
+                "last_modified": cve.get("lastModified"),
+                "configurations": cve.get("configurations", [])
             })
 
         self._cache[cpe] = vulnerabilities
