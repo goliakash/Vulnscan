@@ -22,7 +22,7 @@ def parse_args():
     p.add_argument("--save", action="store_true", help="Save JSON results")
     p.add_argument(
         "--signatures",
-        default=str(PROJECT_ROOT / "signatures" / "signatures.json"),
+        default=str(PROJECT_ROOT / "signatures" / "fingerprints.json"),
         help="Path to signatures JSON file",
     )
     return p.parse_args()
