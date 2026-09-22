@@ -1,6 +1,7 @@
 # scanner/portscan.py
 """
-Async port scanner that connects to ports, grabs banners, and matches fingerprints.
+Async port scanner that connects to ports, grabs banners,
+matches fingerprints, correlates CVEs, and builds findings.
 """
 
 import asyncio
@@ -9,6 +10,8 @@ from typing import Dict, Any
 from scanner.httpgrab import BannerGrabber
 from scanner.fingerprint import FingerprintMatcher
 from models.finding import Finding
+from cvelookup.nvd_client import NVDClient
+from cvelookup.correlator import CVECorrelator
 
 
 class PortScanner:
@@ -24,13 +27,19 @@ class PortScanner:
         self.start_port = start_port
         self.end_port = end_port
         self.concurrency = concurrency
+
         self.banner_grabber = BannerGrabber()
         self.matcher = FingerprintMatcher(signatures_path)
+
+        # Vulnerability correlation components
+        self.nvd_client = NVDClient()
+        self.correlator = CVECorrelator(self.nvd_client)
 
     async def _scan_port(self, port: int) -> Dict[str, Any]:
         """
         Attempt to connect to the given port and grab service banners.
         """
+
         try:
             conn = asyncio.open_connection(self.target, port)
             reader, writer = await asyncio.wait_for(conn, timeout=2)
@@ -44,7 +53,12 @@ class PortScanner:
             }
 
         try:
-            banner_info = await self.banner_grabber.grab(self.target, port, reader, writer)
+            banner_info = await self.banner_grabber.grab(
+                self.target,
+                port,
+                reader,
+                writer
+            )
         finally:
             try:
                 writer.close()
@@ -52,14 +66,26 @@ class PortScanner:
             except Exception:
                 pass
 
+        # --------------------------------------------------
+        # SERVICE FINGERPRINTING
+        # --------------------------------------------------
+
         vulns = self.matcher.match(banner_info)
         identity = self.matcher.identify(banner_info)
 
-        service = banner_info.get("service") if isinstance(banner_info, dict) else None
+        service = (
+            banner_info.get("service")
+            if isinstance(banner_info, dict)
+            else None
+        )
 
         product = identity.get("product") if identity else None
         version = identity.get("version") if identity else None
         cpe = identity.get("cpe") if identity else None
+
+        # --------------------------------------------------
+        # EVIDENCE COLLECTION
+        # --------------------------------------------------
 
         evidence = [
             f"Port {port} is open",
@@ -75,6 +101,21 @@ class PortScanner:
         if cpe:
             evidence.append(f"CPE identified: {cpe}")
 
+        # --------------------------------------------------
+        # CVE CORRELATION
+        # --------------------------------------------------
+
+        correlated_vulnerabilities = []
+
+        if cpe:
+            correlated_vulnerabilities = await self.correlator.correlate(
+                cpe
+            )
+
+        # --------------------------------------------------
+        # FINDING
+        # --------------------------------------------------
+
         finding = Finding(
             finding_id=f"VS-{port}",
             target=self.target,
@@ -87,12 +128,16 @@ class PortScanner:
             evidence=evidence
         )
 
+        # --------------------------------------------------
+        # RESULT
+        # --------------------------------------------------
+
         return {
             "port": port,
             "status": "OPEN",
             "banner": banner_info,
             "service": service,
-            "vulnerabilities": vulns,
+            "vulnerabilities": correlated_vulnerabilities,
             "finding": finding.to_dict(),
         }
 
@@ -100,17 +145,27 @@ class PortScanner:
         """
         Scan the specified range of ports concurrently.
         """
+
         results = []
+
         sem = asyncio.Semaphore(self.concurrency)
 
         async def worker(p):
             async with sem:
                 return await self._scan_port(p)
 
-        tasks = [worker(p) for p in range(self.start_port, self.end_port + 1)]
+        tasks = [
+            worker(p)
+            for p in range(self.start_port, self.end_port + 1)
+        ]
+
         for fut in asyncio.as_completed(tasks):
             res = await fut
             results.append(res)
 
         results.sort(key=lambda x: x["port"])
-        return {"target": self.target, "results": results}
+
+        return {
+            "target": self.target,
+            "results": results
+        }
