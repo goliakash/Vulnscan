@@ -25,5 +25,14 @@
     "substring": "openssl",
     "regex": null,
     "cpe": "cpe:2.3:a:openssl:openssl:{version}:*:*:*:*:*:*:*"
-  }
+  },
+  {
+  "id": "python",
+  "product": "Python",
+  "version": null,
+  "version_regex": "python/([0-9]+\\.[0-9]+\\.[0-9]+)",
+  "substring": "python/",
+  "regex": null,
+  "cpe": "cpe:2.3:a:python:python:{version}:*:*:*:*:*:*:*"
+}
 ]

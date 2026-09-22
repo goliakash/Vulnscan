@@ -25,7 +25,7 @@ class ConsoleReporter:
 
         total_vulns, open_ports = 0, 0
         for r in rows:
-            cv_count = sum(len(v.get("cves", [])) for v in r.get("vulnerabilities", []))
+            cv_count = len(r.get("vulnerabilities", []))
             total_vulns += cv_count
             if r.get("status") == "OPEN":
                 open_ports += 1
