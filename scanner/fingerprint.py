@@ -51,3 +51,71 @@ class FingerprintMatcher:
                 continue
 
         return matches
+
+    def identify(self, banner_info: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Identify the most relevant product, version and CPE
+        from the available banner information.
+        """
+        text = ""
+
+        if isinstance(banner_info, dict):
+            parts = []
+
+            if banner_info.get("raw"):
+                parts.append(str(banner_info.get("raw")))
+
+            if banner_info.get("http"):
+                parts.append(str(banner_info.get("http")))
+
+            if banner_info.get("tls"):
+                parts.append(str(banner_info.get("tls")))
+
+            text = " | ".join(parts).lower()
+        else:
+            text = str(banner_info).lower()
+
+        for sig in self.signatures:
+            patt = sig.get("regex")
+            substr = sig.get("substring")
+
+            try:
+                matched = False
+
+                if patt and re.search(patt, text, re.IGNORECASE):
+                    matched = True
+
+                elif substr and substr.lower() in text:
+                    matched = True
+
+                if matched:
+                    version = sig.get("version")
+
+                    version_regex = sig.get("version_regex")
+
+                    if version_regex:
+                        version_match = re.search(
+                            version_regex,
+                            text,
+                            re.IGNORECASE
+                        )
+
+                        if version_match:
+                            version = version_match.group(1)
+
+                    cpe = sig.get("cpe")
+
+                    if cpe and version:
+                        cpe = cpe.replace("{version}", version)
+
+                    return {
+                        "signature_id": sig.get("id"),
+                        "product": sig.get("product"),
+                        "version": version,
+                        "cpe": cpe,
+                    }
+
+            except re.error:
+                continue
+
+        return None

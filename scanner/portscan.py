@@ -8,6 +8,7 @@ from typing import Dict, Any
 
 from scanner.httpgrab import BannerGrabber
 from scanner.fingerprint import FingerprintMatcher
+from models.finding import Finding
 
 
 class PortScanner:
@@ -52,13 +53,47 @@ class PortScanner:
                 pass
 
         vulns = self.matcher.match(banner_info)
+        identity = self.matcher.identify(banner_info)
+
+        service = banner_info.get("service") if isinstance(banner_info, dict) else None
+
+        product = identity.get("product") if identity else None
+        version = identity.get("version") if identity else None
+        cpe = identity.get("cpe") if identity else None
+
+        evidence = [
+            f"Port {port} is open",
+            f"Service detected: {service or 'unknown'}"
+        ]
+
+        if product:
+            evidence.append(f"Product identified: {product}")
+
+        if version:
+            evidence.append(f"Version identified: {version}")
+
+        if cpe:
+            evidence.append(f"CPE identified: {cpe}")
+
+        finding = Finding(
+            finding_id=f"VS-{port}",
+            target=self.target,
+            port=port,
+            service=service,
+            product=product,
+            version=version,
+            cpe=cpe,
+            confidence="MEDIUM",
+            evidence=evidence
+        )
 
         return {
             "port": port,
             "status": "OPEN",
             "banner": banner_info,
-            "service": banner_info.get("service") if isinstance(banner_info, dict) else None,
+            "service": service,
             "vulnerabilities": vulns,
+            "finding": finding.to_dict(),
         }
 
     async def run(self) -> Dict[str, Any]:
